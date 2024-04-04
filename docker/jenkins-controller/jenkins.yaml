@@ -1,0 +1,102 @@
+credentials:
+  system:
+    domainCredentials:
+    - credentials:
+      - basicSSHUserPrivateKey:
+          description: "aws - keypair with ssh user"
+          id: "aws-keypair"
+          scope: GLOBAL
+          username: "ec2-user"
+          privateKeySource:
+            directEntry:
+              privateKey: |
+                -----BEGIN RSA PRIVATE KEY-----
+                MIIEpAIBAAKCAQEAjFXet1gxi8VlfYJF8knv2IlR6PAlOLVPs++CdPL8g5FBWPGM
+                gqlxWhTyyzyfbUYDgZgpX8CPcU/hSYIEijxMN62PPItP5ALhS61Pyg==
+                -----END RSA PRIVATE KEY-----
+x-ec2_anchor: &ec2_anchor
+  associatePublicIp: false
+  connectBySSHProcess: false
+  connectionStrategy: PRIVATE_IP
+  deleteRootOnTermination: false
+  ebsOptimized: false
+  idleTerminationMinutes: "10"
+  initScript: "sudo yum update -y ; sudo yum install git -y"
+  maxTotalUses: -1
+  monitoring: false
+  numExecutors: 1
+  stopOnTerminate: false
+  tenancy: Default
+  useEphemeralDevices: false
+  # zone: "us-east-1"
+  ami: "ami-0a699202e5027c10d"
+  securityGroups: ${JENKINS_EC2_AGENT_SECURITY_GROUP}
+  subnetId: ${JENKINS_AGENT_SUBNET_IDS}
+  remoteFS: "/home/ec2-user"
+  remoteAdmin: "ec2-user"
+  mode: "NORMAL"
+  amiType:
+    unixData:
+      # rootCommandPrefix: "sudo"
+      # slaveCommandPrefix: "sudo -u jenkins"
+      sshPort: "22"
+jenkins:
+  remotingSecurity:
+    enabled: true
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: ${USER_NAME}
+          password: ${USER_PASSWORD}
+  slaveAgentPort: 50000
+  agentProtocols:
+    - JNLP4-connect
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+  clouds:
+    - amazonEC2:
+        name: "ec2"
+        instanceCapStr: 20
+        useInstanceProfileForCredentials: false
+        sshKeysCredentialsId: "aws-keypair"
+        noDelayProvisioning: true
+        region: "us-east-1"
+        templates:
+          - description: "Auto configured EC2 Agent Micro"
+            type: "T2Micro"
+            labelString: "Micro"
+            <<: *ec2_anchor
+    - ecs:
+        credentialsId: ""
+        cluster: ${ECS_CLUSTER_ARN}
+        name: ${ECS_CLUSTER_NAME}
+        regionName: ${ECS_REGION}
+        jenkinsUrl: ${JENKINS_URL}
+        tunnel: ${JENKINS_CONTROLLER_AGENT_TUNNEL}
+        templates:
+          - assignPublicIp: false
+            cpu: 1024
+            executionRole: ${ECS_EXECUTION_ROLE_ARN}
+            taskrole: ${ECS_AGENT_TASK_ROLE_ARN}
+            image: ${JENKINS_AGENT_IMAGE}
+            label: "Agent"
+            templateName: "agent"
+            launchType: "FARGATE"
+            logDriver: "awslogs"
+            logDriverOptions:
+              - name: awslogs-group
+                value: ${JENKINS_AGENT_CLOUDWATCH_LOG_GROUP_NAME}
+              - name: awslogs-region
+                value: ${JENKINS_AGENT_CLOUDWATCH_LOG_GROUP_REGION}
+              - name: awslogs-stream-prefix
+                value: jenkins-agent
+            memoryReservation: 2048
+            networkMode: "awsvpc"
+            operatingSystemFamily: "LINUX"
+            platformVersion: "LATEST"
+            privileged: false
+            remoteFSRoot: "/home/jenkins"
+            securityGroups: ${JENKINS_AGENT_SECURITY_GROUP}
+            subnets: ${JENKINS_AGENT_SUBNET_IDS}
