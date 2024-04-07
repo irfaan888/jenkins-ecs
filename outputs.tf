@@ -37,3 +37,7 @@ output "jenkins_url" {
   description = "URL of the Jenkins server"
   value       = "http://${aws_lb.this.dns_name}"
 }
+
+# output "ssh_key_output" {
+#   value = tls_private_key.aexample.private_key_pem
+# }

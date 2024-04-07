@@ -9,11 +9,7 @@ credentials:
           username: "ec2-user"
           privateKeySource:
             directEntry:
-              privateKey: |
-                -----BEGIN RSA PRIVATE KEY-----
-                ThisIsJusatAPlaceholderNeedToBeRemovedafterCodeEnhancementgxi8VlfYJF8knv2IlR6PAlOLVPs++CdPL8g5FBWPGM
-                gqlxWhTyyzyfbUYDgZgpX8CPcU/hSYIEijxMN62PPItP5ALhS61Pyg==
-                -----END RSA PRIVATE KEY-----
+              privateKey: ${JENKINS_EC2_AGENT_SSH_KEY}
 x-ec2_anchor: &ec2_anchor
   associatePublicIp: false
   connectBySSHProcess: false

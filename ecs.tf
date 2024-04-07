@@ -36,6 +36,7 @@ resource "aws_ecs_task_definition" "this" {
     jenkins_agent_image          = "${data.aws_caller_identity.this.account_id}.dkr.ecr.us-east-1.amazonaws.com/${var.application_name}:jenkins-agent",
     jenkins_agent_security_group = aws_security_group.ecs_jenkins_agent.id,
     jenkins_ec2_agent_security_group = aws_security_group.allow_ssh.id,
+    jenkins_ec2_agent_ssh_key        = data.aws_secretsmanager_secret_version.current.secret_string
     jenkins_agent_subnet_ids     = join(",", local.private_subnet_ids),
     }
   )
@@ -318,6 +319,11 @@ resource "aws_ecs_service" "this" {
     registry_arn = aws_service_discovery_service.this.arn
     port         = var.jenkins_agent_port
   }
+
+  depends_on = [
+    awscc_ecr_repository.this
+  ]
+
 }
 
 
